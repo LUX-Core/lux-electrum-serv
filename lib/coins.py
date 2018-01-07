@@ -882,6 +882,21 @@ class Hush(EquihashMixin, Coin):
     RPC_PORT = 8822
     REORG_LIMIT = 800
 
+class Zclassic(EquihashMixin, Coin):
+    NAME = "Zclassic"
+    SHORTNAME = "ZCL"
+    NET = "mainnet"
+    P2PKH_VERBYTE = bytes.fromhex("1CB8")
+    P2SH_VERBYTES = [bytes.fromhex("1CBD")]
+    WIF_BYTE = bytes.fromhex("80")
+    GENESIS_HASH         = ( '0007104ccda289427919efc39dc9e4d4'
+                             '99804b7bebc22df55f8b834301260602')
+    DESERIALIZER = lib_tx.DeserializerZcash
+    TX_COUNT = 329196
+    TX_COUNT_HEIGHT = 68379
+    TX_PER_BLOCK = 5
+    RPC_PORT = 8023
+    REORG_LIMIT = 800
 
 class Komodo(KomodoMixin, EquihashMixin, Coin):
     NAME = "Komodo"
@@ -1350,3 +1365,22 @@ class Chips(Coin):
     REORG_LIMIT = 800
 
 
+class Feathercoin(Coin):
+    NAME = "Feathercoin"
+    SHORTNAME = "FTC"
+    NET = "mainnet"
+    XPUB_VERBYTES = bytes.fromhex("0488BC26")
+    XPRV_VERBYTES = bytes.fromhex("0488DAEE")
+    P2PKH_VERBYTE = bytes.fromhex("0E")
+    P2SH_VERBYTES = [bytes.fromhex("32"), bytes.fromhex("05")]
+    WIF_BYTE = bytes.fromhex("8E")
+    GENESIS_HASH = ('12a765e31ffd4059bada1e25190f6e98'
+                    'c99d9714d334efa41a195a7e7e04bfe2')
+    TX_COUNT = 3170843
+    TX_COUNT_HEIGHT = 1981777
+    TX_PER_BLOCK = 2
+    RPC_PORT = 9337
+    REORG_LIMIT = 2000
+    PEERS = [
+        'electrumx-ch-1.feathercoin.ch s t',
+    ]
