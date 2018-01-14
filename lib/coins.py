@@ -1052,6 +1052,28 @@ class mShark(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class BitcoinHush(KomodoMixin, EquihashMixin, Coin):
+    NAME = "BitcoinHush"
+    SHORTNAME = "BTCH"
+    NET = "mainnet"
+    TX_COUNT = 400
+    TX_COUNT_HEIGHT = 200
+    TX_PER_BLOCK = 2
+    RPC_PORT = 8801
+    REORG_LIMIT = 800
+    PEERS = []
+
+class MultiGateway(KomodoMixin, EquihashMixin, Coin):
+    NAME = "MultiGateway"
+    SHORTNAME = "MGW"
+    NET = "mainnet"
+    TX_COUNT = 7500
+    TX_COUNT_HEIGHT = 5000
+    TX_PER_BLOCK = 2
+    RPC_PORT = 12386
+    REORG_LIMIT = 800
+    PEERS = []
+
 
 class Einsteinium(Coin):
     NAME = "Einsteinium"
