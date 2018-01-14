@@ -486,12 +486,12 @@ class DashElectrumX(ElectrumX):
             'masternode.subscribe': self.masternode_subscribe,
         })
 
-    async def notify(self, height, touched):
+    def notify(self, height, touched):
         '''Notify the client about changes in masternode list.'''
-        await super().notify(height, touched)
+        result = super().notify(height, touched)
 
         for masternode in self.mns:
-            status = await self.daemon.masternode_list(['status', masternode])
+            status = self.daemon.masternode_list(['status', masternode])
             payload = {
                 'id': None,
                 'method': 'masternode.subscribe',
@@ -499,16 +499,7 @@ class DashElectrumX(ElectrumX):
                 'result': status.get(masternode),
             }
             self.send_binary(self.encode_payload(payload))
-
-    def server_version(self, client_name=None, protocol_version=None):
-        '''Returns the server version as a string.
-        Force version string response for Electrum-Dash 2.6.4 client caused by
-        https://github.com/dashpay/electrum-dash/commit/638cf6c0aeb7be14a85ad98f873791cb7b49ee29
-        '''
-        default_return = super().server_version(client_name, protocol_version)
-        if self.client == '2.6.4':
-            return '1.0'
-        return default_return
+        return result
 
     # Masternode command handlers
     async def masternode_announce_broadcast(self, signmnb):
