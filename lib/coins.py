@@ -1078,6 +1078,17 @@ class BitcoinHush(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class Utrum(KomodoMixin, EquihashMixin, Coin):
+    NAME = "Utrum"
+    SHORTNAME = "OOT"
+    NET = "mainnet"
+    TX_COUNT = 200
+    TX_COUNT_HEIGHT = 100
+    TX_PER_BLOCK = 2
+    RPC_PORT = 12467
+    REORG_LIMIT = 800
+    PEERS = []
+
 class MultiGateway(KomodoMixin, EquihashMixin, Coin):
     NAME = "MultiGateway"
     SHORTNAME = "MGW"
