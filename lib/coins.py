@@ -913,6 +913,22 @@ class Zclassic(EquihashMixin, Coin):
     RPC_PORT = 8023
     REORG_LIMIT = 800
 
+class Koto(Coin):
+    NAME = "Koto"
+    SHORTNAME = "KOTO"
+    NET = "mainnet"
+    P2PKH_VERBYTE = bytes.fromhex("1836")
+    P2SH_VERBYTES = [bytes.fromhex("183B")]
+    WIF_BYTE = bytes.fromhex("80")
+    GENESIS_HASH = ('6d424c350729ae633275d51dc3496e16'
+                    'cd1b1d195c164da00f39c499a2e9959e')
+    DESERIALIZER = lib_tx.DeserializerZcash
+    TX_COUNT = 158914
+    TX_COUNT_HEIGHT = 67574
+    TX_PER_BLOCK = 3
+    RPC_PORT = 8432
+    REORG_LIMIT = 800
+
 class Komodo(KomodoMixin, EquihashMixin, Coin):
     NAME = "Komodo"
     SHORTNAME = "KMD"
@@ -1432,3 +1448,18 @@ class Feathercoin(Coin):
     PEERS = [
         'electrumx-ch-1.feathercoin.ch s t',
     ]
+
+class Newyorkcoin(AuxPowMixin, Coin):
+    NAME = "Newyorkcoin"
+    SHORTNAME = "NYC"
+    NET = "mainnet"
+    P2PKH_VERBYTE = bytes.fromhex("3c")
+    P2SH_VERBYTES = [bytes.fromhex("16")]
+    WIF_BYTE = bytes.fromhex("bc")
+    GENESIS_HASH = ('5597f25c062a3038c7fd815fe46c67de'
+                    'dfcb3c839fbc8e01ed4044540d08fe48')
+    DAEMON = daemon.LegacyRPCDaemon
+    TX_COUNT = 5161944
+    TX_COUNT_HEIGHT = 3948743
+    TX_PER_BLOCK = 2
+    REORG_LIMIT = 2000
