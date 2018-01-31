@@ -1132,6 +1132,38 @@ class MultiGateway(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class Vote(KomodoMixin, EquihashMixin, Coin):
+    NAME = "Vote"
+    SHORTNAME = "VOTE"
+    NET = "mainnet"
+    TX_COUNT = 100
+    TX_COUNT_HEIGHT = 100
+    TX_PER_BLOCK = 2
+    RPC_PORT = 8177
+    REORG_LIMIT = 800
+    PEERS = []
+
+class Beer(KomodoMixin, EquihashMixin, Coin):
+    NAME = "Beer"
+    SHORTNAME = "BEER"
+    NET = "mainnet"
+    TX_COUNT = 18602
+    TX_COUNT_HEIGHT = 4611
+    TX_PER_BLOCK = 4
+    RPC_PORT = 8923
+    REORG_LIMIT = 800
+    PEERS = []
+
+class Pizza(KomodoMixin, EquihashMixin, Coin):
+    NAME = "Pizza"
+    SHORTNAME = "PIZZA"
+    NET = "mainnet"
+    TX_COUNT = 10247
+    TX_COUNT_HEIGHT = 2295
+    TX_PER_BLOCK = 4
+    RPC_PORT = 11116
+    REORG_LIMIT = 800
+    PEERS = []
 
 class Einsteinium(Coin):
     NAME = "Einsteinium"
