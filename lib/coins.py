@@ -403,14 +403,14 @@ class BitcoinCash(BitcoinMixin, Coin):
     TX_COUNT_HEIGHT = 479636
     TX_PER_BLOCK = 50
     PEERS = [
-        'electroncash.bitcoinplug.com s t',
+        'electroncash.bitcoinplug.com s t',  # 1 strike
         'electrum-abc.criptolayer.net s50012',
         'electroncash.cascharia.com s50002',
         'bch.arihanc.com t52001 s52002',
-        'mash.1209k.com s t',
-        'h.1209k.com s t',
+        'jelectrum-cash.1209k.com s t',
         'abc.vom-stausee.de t52001 s52002',
         'abc1.hsmiths.com t60001 s60002',
+        'electroncash.checksum0.com s t',
     ]
 
 
@@ -1362,7 +1362,6 @@ class Fujicoin(Coin):
                     'a636f70856183086842667a1597714a0')
     ESTIMATE_FEE = 0.001
     RELAY_FEE = 0.001
-    DAEMON = daemon.FakeEstimateFeeDaemon
     TX_COUNT = 170478
     TX_COUNT_HEIGHT = 1521676
     TX_PER_BLOCK = 1
@@ -1522,4 +1521,3 @@ class Bitcore(BitcoinMixin, Coin):
     TX_COUNT_HEIGHT = 126946
     TX_PER_BLOCK = 2
     RPC_PORT = 8556
-
