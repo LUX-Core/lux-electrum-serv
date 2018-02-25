@@ -1143,6 +1143,17 @@ class Vote(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class Vote2018(KomodoMixin, EquihashMixin, Coin):
+    NAME = "Vote2018"
+    SHORTNAME = "VOTE2018"
+    NET = "mainnet"
+    TX_COUNT = 100
+    TX_COUNT_HEIGHT = 100
+    TX_PER_BLOCK = 2
+    RPC_PORT = 10317
+    REORG_LIMIT = 800
+    PEERS = []
+
 class Beer(KomodoMixin, EquihashMixin, Coin):
     NAME = "Beer"
     SHORTNAME = "BEER"
