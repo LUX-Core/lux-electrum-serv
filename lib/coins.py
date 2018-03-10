@@ -1153,6 +1153,17 @@ class Vote2018(KomodoMixin, EquihashMixin, Coin):
     RPC_PORT = 10317
     REORG_LIMIT = 800
     PEERS = []
+    
+class Ninja(KomodoMixin, EquihashMixin, Coin):
+    NAME = "Ninja"
+    SHORTNAME = "NINJA"
+    NET = "mainnet"
+    TX_COUNT = 100
+    TX_COUNT_HEIGHT = 100
+    TX_PER_BLOCK = 2
+    RPC_PORT = 8427
+    REORG_LIMIT = 800
+    PEERS = []
 
 class Beer(KomodoMixin, EquihashMixin, Coin):
     NAME = "Beer"
