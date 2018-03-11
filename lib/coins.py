@@ -35,6 +35,7 @@ import re
 import struct
 from decimal import Decimal
 from hashlib import sha256
+from functools import partial
 
 import lib.util as util
 from lib.hash import Base58, hash160, double_sha256, hash_to_str
@@ -405,7 +406,6 @@ class BitcoinCash(BitcoinMixin, Coin):
     TX_COUNT_HEIGHT = 479636
     TX_PER_BLOCK = 50
     PEERS = [
-        'electroncash.bitcoinplug.com s t',  # 1 strike
         'electrum-abc.criptolayer.net s50012',
         'electroncash.cascharia.com s50002',
         'bch.arihanc.com t52001 s52002',
@@ -570,8 +570,8 @@ class Litecoin(Coin):
     NAME = "Litecoin"
     SHORTNAME = "LTC"
     NET = "mainnet"
-    XPUB_VERBYTES = bytes.fromhex("019d9cfe")
-    XPRV_VERBYTES = bytes.fromhex("019da462")
+    XPUB_VERBYTES = bytes.fromhex("0488b21e")
+    XPRV_VERBYTES = bytes.fromhex("0488ade4")
     P2PKH_VERBYTE = bytes.fromhex("30")
     P2SH_VERBYTES = [bytes.fromhex("32"), bytes.fromhex("05")]
     WIF_BYTE = bytes.fromhex("b0")
@@ -597,8 +597,8 @@ class Litecoin(Coin):
 class LitecoinTestnet(Litecoin):
     SHORTNAME = "XLT"
     NET = "testnet"
-    XPUB_VERBYTES = bytes.fromhex("0436ef7d")
-    XPRV_VERBYTES = bytes.fromhex("0436f6e1")
+    XPUB_VERBYTES = bytes.fromhex("043587cf")
+    XPRV_VERBYTES = bytes.fromhex("04358394")
     P2PKH_VERBYTE = bytes.fromhex("6f")
     P2SH_VERBYTES = [bytes.fromhex("3a"), bytes.fromhex("c4")]
     WIF_BYTE = bytes.fromhex("ef")
@@ -881,6 +881,22 @@ class Zcash(EquihashMixin, Coin):
     TX_COUNT_HEIGHT = 68379
     TX_PER_BLOCK = 5
     RPC_PORT = 8232
+    REORG_LIMIT = 800
+
+class SnowGem(EquihashMixin, Coin):
+    NAME = "SnowGem"
+    SHORTNAME = "SNG"
+    NET = "mainnet"
+    P2PKH_VERBYTE = bytes.fromhex("1C28")
+    P2SH_VERBYTES = [bytes.fromhex("1C2D")]
+    WIF_BYTE = bytes.fromhex("80")
+    GENESIS_HASH = ('00068b35729d9d2b0c294ff1fe9af009'
+                    '4740524311a131de40e7f705e4c29a5b')
+    DESERIALIZER = lib_tx.DeserializerZcash
+    TX_COUNT = 140698
+    TX_COUNT_HEIGHT = 102802
+    TX_PER_BLOCK = 2
+    RPC_PORT = 16112
     REORG_LIMIT = 800
 
 class BitcoinZ(EquihashMixin, Coin):
@@ -1452,6 +1468,45 @@ class CanadaeCoin(AuxPowMixin, Coin):
     RPC_PORT = 34330
     REORG_LIMIT = 1000
 
+class Denarius(Coin):
+    NAME = "Denarius"
+    SHORTNAME = "DNR"
+    NET = "mainnet"
+    XPUB_VERBYTES = bytes.fromhex("0488b21e")
+    XPRV_VERBYTES = bytes.fromhex("0488ade4")
+    P2PKH_VERBYTE = bytes.fromhex("1E") #Address starts with a D
+    P2SH_VERBYTES = [bytes.fromhex("5A")]
+    WIF_BYTE = bytes.fromhex("9E") #WIF starts with a 6
+    GENESIS_HASH = ('00000d5dbbda01621cfc16bbc1f9bf32'
+                    '64d641a5dbf0de89fd0182c2c4828fcd')
+    DESERIALIZER = lib_tx.DeserializerTxTime
+    TX_COUNT = 4230
+    RPC_PORT = 32339
+    ESTIMATE_FEE = 0.00001
+    RELAY_FEE = 0.00001
+    DAEMON = daemon.FakeEstimateFeeDaemon
+    TX_COUNT_HEIGHT = 306187
+    TX_PER_BLOCK = 4000
+
+    @classmethod
+    def header_hash(cls, header):
+        '''Given a header return the hash.'''
+        import tribus_hash
+        return tribus_hash.getPoWHash(header)
+
+
+class DenariusTestnet(Denarius):
+    NET = "testnet"
+    XPUB_VERBYTES = bytes.fromhex("043587cf")
+    XPRV_VERBYTES = bytes.fromhex("04358394")
+    P2PKH_VERBYTE = bytes.fromhex("12")
+    P2SH_VERBYTES = [bytes.fromhex("74")]
+    WIF_BYTE = bytes.fromhex("ef")
+    GENESIS_HASH = ('000086bfe8264d241f7f8e5393f74778'
+                    '4b8ca2aa98bdd066278d590462a4fdb4')
+    RPC_PORT = 32338
+    REORG_LIMIT = 2000
+
 
 class Sibcoin(Dash):
     NAME = "Sibcoin"
@@ -1585,3 +1640,54 @@ class BitcoinAtom(Coin):
         '''Return the block header bytes'''
         deserializer = cls.DESERIALIZER(block)
         return deserializer.read_header(height, cls.BASIC_HEADER_SIZE)
+
+
+class Decred(Coin):
+    NAME = "Decred"
+    SHORTNAME = "DCR"
+    NET = "mainnet"
+    XPUB_VERBYTES = bytes('dpub', 'utf-8')
+    XPRV_VERBYTES = bytes('dprv', 'utf-8')
+    P2PKH_VERBYTE = bytes('Ds', 'utf-8')
+    P2SH_VERBYTES = [bytes('Dc', 'utf-8')]
+    WIF_BYTE = bytes('Pm', 'utf-8')
+    GENESIS_HASH = ('298e5cc3d985bfe7f81dc135f360abe089edd4396b86d2de66b0cef42b21d980')
+    DESERIALIZER = lib_tx.DeserializerDecred
+    ENCODE_CHECK = partial(Base58.encode_check, hash_fn=lib_tx.DeserializerDecred.blake256)
+    DECODE_CHECK = partial(Base58.decode_check, hash_fn=lib_tx.DeserializerDecred.blake256)
+    HEADER_HASH = lib_tx.DeserializerDecred.blake256
+    BASIC_HEADER_SIZE = 180
+    ALLOW_ADVANCING_ERRORS = True
+    TX_COUNT = 217380620
+    TX_COUNT_HEIGHT = 218875
+    TX_PER_BLOCK = 1000
+    RPC_PORT = 9109
+
+    @classmethod
+    def header_hash(cls, header):
+        '''Given a header return the hash.'''
+        return cls.HEADER_HASH(header)
+
+    @classmethod
+    def block(cls, raw_block, height):
+        '''Return a Block namedtuple given a raw block and its height.'''
+        if height > 0:
+            return super().block(raw_block, height)
+        else:
+            return Block(raw_block, cls.block_header(raw_block, height), [])        
+
+
+class DecredTestnet(Decred):
+    NAME = "Decred"
+    NET = "testnet"
+    XPUB_VERBYTES = bytes('tpub', 'utf-8')
+    XPRV_VERBYTES = bytes('tprv', 'utf-8')
+    P2PKH_VERBYTE = bytes('Ts', 'utf-8')
+    P2SH_VERBYTES = [bytes('Tc', 'utf-8')]
+    WIF_BYTE = bytes('Pt', 'utf-8')
+    GENESIS_HASH = ('4261602a9d07d80ad47621a64ba6a07754902e496777edc4ff581946bd7bc29c')
+    TX_COUNT = 3176305
+    TX_COUNT_HEIGHT = 254198
+    TX_PER_BLOCK = 1000
+    RPC_PORT = 19109
+    
