@@ -1290,6 +1290,17 @@ class Etomic(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class Blocnation(KomodoMixin, EquihashMixin, Coin):
+    NAME = "Blocnation"
+    SHORTNAME = "BNTN"
+    NET = "mainnet"
+    TX_COUNT = 100
+    TX_COUNT_HEIGHT = 100
+    TX_PER_BLOCK = 2
+    RPC_PORT = 14358
+    REORG_LIMIT = 800
+    PEERS = []
+
 class Einsteinium(Coin):
     NAME = "Einsteinium"
     SHORTNAME = "EMC2"
