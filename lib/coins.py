@@ -36,6 +36,7 @@ import struct
 from decimal import Decimal
 from hashlib import sha256
 from functools import partial
+import base64
 
 import lib.util as util
 from lib.hash import Base58, hash160, double_sha256, hash_to_str
@@ -575,7 +576,7 @@ class BitcoinCashTestnet(BitcoinTestnetMixin, Coin):
     PEERS = [
         'electrum-testnet-abc.criptolayer.net s50112',
         'bchtestnet.arihanc.com t53001 s53002',
-        'ciiattqkgzebpp6jofjbrkhvhwmgnsfoayljdcrve2p3qmkbv3duaoyd.onion t53001 s53002',     
+        'ciiattqkgzebpp6jofjbrkhvhwmgnsfoayljdcrve2p3qmkbv3duaoyd.onion t53001 s53002',
     ]
 
 
@@ -589,7 +590,7 @@ class BitcoinSegwitTestnet(BitcoinTestnetMixin, Coin):
         'testnet.hsmiths.com t53011 s53012',
         'hsmithsxurybd7uh.onion t53011 s53012',
         'testnetnode.arihanc.com s t',
-        'w3e2orjpiiv2qwem3dw66d7c4krink4nhttngkylglpqe5r22n6n5wid.onion s t', 
+        'w3e2orjpiiv2qwem3dw66d7c4krink4nhttngkylglpqe5r22n6n5wid.onion s t',
     ]
 
 
@@ -949,6 +950,24 @@ class SnowGem(EquihashMixin, Coin):
     TX_PER_BLOCK = 2
     RPC_PORT = 16112
     REORG_LIMIT = 800
+    CHUNK_SIZE = 200
+
+    @classmethod
+    def electrum_header(cls, header, height):
+        version, = struct.unpack('<I', header[:4])
+        timestamp, bits = struct.unpack('<II', header[100:108])
+
+        return {
+            'block_height': height,
+            'version': version,
+            'prev_block_hash': hash_to_str(header[4:36]),
+            'merkle_root': hash_to_str(header[36:68]),
+            'hash_reserved': hash_to_str(header[68:100]),
+            'timestamp': timestamp,
+            'bits': bits,
+            'nonce': hash_to_str(header[108:140]),
+            'n_solution': base64.b64encode(lib_tx.Deserializer(header, start=140)._read_varbytes()).decode('utf8')
+        }
 
 class BitcoinZ(EquihashMixin, Coin):
     NAME = "BitcoinZ"
@@ -1013,6 +1032,10 @@ class Koto(Coin):
     TX_PER_BLOCK = 3
     RPC_PORT = 8432
     REORG_LIMIT = 800
+    PEERS = [
+        'fr.kotocoin.info s t',
+        'electrum.kotocoin.info s t',
+    ]
 
 class Komodo(KomodoMixin, EquihashMixin, Coin):
     NAME = "Komodo"
@@ -1396,7 +1419,7 @@ class Monacoin(Coin):
         'electrumx1.monacoin.ninja s t',
         'electrumx2.monacoin.ninja s t',
         'electrumx1.movsign.info t',
-        'electrumx2.movsign.info t',
+        'electrumx2.movsign.info s t',
         'electrum-mona.bitbank.cc s t',
     ]
 
@@ -1735,7 +1758,7 @@ class Decred(Coin):
         if height > 0:
             return super().block(raw_block, height)
         else:
-            return Block(raw_block, cls.block_header(raw_block, height), [])        
+            return Block(raw_block, cls.block_header(raw_block, height), [])
 
 
 class DecredTestnet(Decred):
@@ -1751,4 +1774,33 @@ class DecredTestnet(Decred):
     TX_COUNT_HEIGHT = 254198
     TX_PER_BLOCK = 1000
     RPC_PORT = 19109
-    
+
+
+class Axe(Dash):
+    NAME = "Axe"
+    SHORTNAME = "AXE"
+    NET = "mainnet"
+    XPUB_VERBYTES = bytes.fromhex("02fe52cc")
+    XPRV_VERBYTES = bytes.fromhex("02fe52f8")
+    P2PKH_VERBYTE = bytes.fromhex("37")
+    P2SH_VERBYTES = [bytes.fromhex("10")]
+    WIF_BYTE = bytes.fromhex("cc")
+    GENESIS_HASH = ('00000c33631ca6f2f61368991ce2dc03'
+                    '306b5bb50bf7cede5cfbba6db38e52e6')
+    DAEMON = daemon.DashDaemon
+    TX_COUNT = 18405
+    TX_COUNT_HEIGHT = 30237
+    TX_PER_BLOCK = 1
+    RPC_PORT = 9337
+    REORG_LIMIT = 1000
+    PEERS = []
+
+    @classmethod
+    def header_hash(cls, header):
+        '''
+        Given a header return the hash for AXE.
+        Need to download `axe_hash` module
+        Source code: https://github.com/AXErunners/axe_hash
+        '''
+        import x11_hash
+        return x11_hash.getPoWHash(header)
