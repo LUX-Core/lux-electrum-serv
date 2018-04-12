@@ -23,10 +23,10 @@ project = 'ElectrumX'
 copyright = '2016-2018, Neil Booth'
 author = 'Neil Booth'
 
+# The full version including branding
+release = VERSION
 # The short X.Y version
 version = VERSION.split()[-1]
-# The full version, including alpha/beta/rc tags
-release = VERSION
 
 
 # -- General configuration ---------------------------------------------------
