@@ -1299,6 +1299,17 @@ class Blocnation(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class KeyValue(KomodoMixin, EquihashMixin, Coin):
+    NAME = "KeyValue"
+    SHORTNAME = "KV"
+    NET = "mainnet"
+    TX_COUNT = 63200
+    TX_COUNT_HEIGHT = 46400
+    TX_PER_BLOCK = 2
+    RPC_PORT = 8299
+    REORG_LIMIT = 800
+    PEERS = []
+
 class Einsteinium(Coin):
     NAME = "Einsteinium"
     SHORTNAME = "EMC2"
