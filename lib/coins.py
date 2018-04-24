@@ -1533,11 +1533,17 @@ class Bitzeny(Coin):
     ESTIMATE_FEE = 0.001
     RELAY_FEE = 0.001
     DAEMON = daemon.FakeEstimateFeeDaemon
-    TX_COUNT = 1000
-    TX_COUNT_HEIGHT = 10000
+    TX_COUNT = 1408733
+    TX_COUNT_HEIGHT = 1015115
     TX_PER_BLOCK = 1
     RPC_PORT = 9252
     REORG_LIMIT = 1000
+
+    @classmethod
+    def header_hash(cls, header):
+        '''Given a header return the hash.'''
+        import zny_yescrypt
+        return zny_yescrypt.getPoWHash(header)
 
 
 class CanadaeCoin(AuxPowMixin, Coin):
@@ -1677,6 +1683,20 @@ class Newyorkcoin(AuxPowMixin, Coin):
     WIF_BYTE = bytes.fromhex("bc")
     GENESIS_HASH = ('5597f25c062a3038c7fd815fe46c67de'
                     'dfcb3c839fbc8e01ed4044540d08fe48')
+    DAEMON = daemon.LegacyRPCDaemon
+    TX_COUNT = 5161944
+    TX_COUNT_HEIGHT = 3948743
+    TX_PER_BLOCK = 2
+    REORG_LIMIT = 2000
+
+class NewyorkcoinTestnet(Newyorkcoin):
+    SHORTNAME = "tNYC"
+    NET = "testnet"
+    P2PKH_VERBYTE = bytes.fromhex("71")
+    P2SH_VERBYTES = [bytes.fromhex("c4")]
+    WIF_BYTE = bytes.fromhex("f1")
+    GENESIS_HASH = ('24463e4d3c625b0a9059f309044c2cf0'
+                    'd7e196cf2a6ecce901f24f681be33c8f')
     DAEMON = daemon.LegacyRPCDaemon
     TX_COUNT = 5161944
     TX_COUNT_HEIGHT = 3948743
