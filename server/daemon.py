@@ -37,6 +37,9 @@ class Daemon(object):
     class DaemonWarmingUpError(Exception):
         '''Raised when the daemon returns an error in its results.'''
 
+    class NonTxError(Exception):
+        '''Raised when the requested transaction is missing.'''
+
     def __init__(self, env):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.coin = env.coin
@@ -151,7 +154,7 @@ class Daemon(object):
             except self.DaemonWarmingUpError:
                 log_error('starting up checking blocks.')
             except self.NonTxError:
-                log_error('TX not found')
+                log_error('TX not found.')
             except (asyncio.CancelledError, DaemonError):
                 raise
             except Exception as e:
@@ -174,7 +177,9 @@ class Daemon(object):
             if err.get('code') == self.WARMING_UP:
                 raise self.DaemonWarmingUpError
             if err.get('code') == self.NON_TX:
-                return 'not found'
+                x = '{"status": "not found"}'
+                res = json.loads(x)
+                return res
             raise DaemonError(err)
 
         payload = {'method': method, 'id': self.next_req_id()}
