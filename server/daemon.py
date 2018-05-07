@@ -32,7 +32,7 @@ class Daemon(object):
 
     WARMING_UP = -28
     RPC_MISC_ERROR = -1
-    NON_TX = -5 '''ca333'''
+    NON_TX = -5
 
     class DaemonWarmingUpError(Exception):
         '''Raised when the daemon returns an error in its results.'''
