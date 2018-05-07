@@ -32,6 +32,7 @@ class Daemon(object):
 
     WARMING_UP = -28
     RPC_MISC_ERROR = -1
+    NON_TX = -5 '''ca333'''
 
     class DaemonWarmingUpError(Exception):
         '''Raised when the daemon returns an error in its results.'''
@@ -149,6 +150,8 @@ class Daemon(object):
                 log_error('connection problem - is your daemon running?')
             except self.DaemonWarmingUpError:
                 log_error('starting up checking blocks.')
+            except self.NonTxError:
+                log_error('TX not found')
             except (asyncio.CancelledError, DaemonError):
                 raise
             except Exception as e:
@@ -170,6 +173,8 @@ class Daemon(object):
                 return result['result']
             if err.get('code') == self.WARMING_UP:
                 raise self.DaemonWarmingUpError
+            if err.get('code') == self.NON_TX:
+                return 'not found'
             raise DaemonError(err)
 
         payload = {'method': method, 'id': self.next_req_id()}
