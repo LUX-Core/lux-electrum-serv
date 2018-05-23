@@ -1309,6 +1309,18 @@ class KeyValue(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class DSec(KomodoMixin, EquihashMixin, Coin):
+    NAME = "DSec"
+    SHORTNAME = "DSEC"
+    NET = "mainnet"
+    TX_COUNT = 1110
+    TX_COUNT_HEIGHT = 1232
+    TX_PER_BLOCK = 2
+    RPC_PORT = 11557
+    REORG_LIMIT = 800
+    PEERS = []
+
+
 class Einsteinium(Coin):
     NAME = "Einsteinium"
     SHORTNAME = "EMC2"
