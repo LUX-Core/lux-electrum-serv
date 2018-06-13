@@ -1362,6 +1362,17 @@ class DSec(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class ChainZilla(KomodoMixin, EquihashMixin, Coin):
+    NAME = "ChainZilla"
+    SHORTNAME = "ZILLA"
+    NET = "mainnet"
+    TX_COUNT = 100
+    TX_COUNT_HEIGHT = 100
+    TX_PER_BLOCK = 2
+    RPC_PORT = 10041
+    REORG_LIMIT = 800
+    PEERS = []
+
 
 class Einsteinium(Coin):
     NAME = "Einsteinium"
