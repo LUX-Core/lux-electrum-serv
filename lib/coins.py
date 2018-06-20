@@ -1373,6 +1373,17 @@ class ChainZilla(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class Verus(KomodoMixin, EquihashMixin, Coin):
+    NAME = "Verus"
+    SHORTNAME = "VRSC"
+    NET = "mainnet"
+    TX_COUNT = 55000
+    TX_COUNT_HEIGHT = 42000
+    TX_PER_BLOCK = 2
+    RPC_PORT = 27486
+    REORG_LIMIT = 800
+    PEERS = []
+
 
 class Einsteinium(Coin):
     NAME = "Einsteinium"
