@@ -1377,6 +1377,7 @@ class Verus(KomodoMixin, EquihashMixin, Coin):
     NAME = "Verus"
     SHORTNAME = "VRSC"
     NET = "mainnet"
+    DESERIALIZER = lib_tx.DeserializerEquihash
     TX_COUNT = 55000
     TX_COUNT_HEIGHT = 42000
     TX_PER_BLOCK = 2
