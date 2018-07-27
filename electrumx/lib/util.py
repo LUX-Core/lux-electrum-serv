@@ -36,12 +36,35 @@ import sys
 from collections import Container, Mapping
 from struct import pack, Struct
 
+# Logging utilities
+
 
 class ConnectionLogger(logging.LoggerAdapter):
     '''Prepends a connection identifier to a logging message.'''
     def process(self, msg, kwargs):
         conn_id = self.extra.get('conn_id', 'unknown')
         return f'[{conn_id}] {msg}', kwargs
+
+
+class CompactFormatter(logging.Formatter):
+    '''Strips the module from the logger name to leave the class only.'''
+    def format(self, record):
+        record.name = record.name.rpartition('.')[-1]
+        return super().format(record)
+
+
+def make_logger(name, *, handler, level):
+    '''Return the root ElectrumX logger.'''
+    logger = logging.getLogger(name)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    return logger
+
+
+def class_logger(path, classname):
+    '''Return a hierarchical logger for a class.'''
+    return logging.getLogger(path).getChild(classname)
 
 
 # Method decorator.  To be used for calculations that will always
@@ -281,29 +304,30 @@ def version_string(ptuple):
     return '.'.join(str(p) for p in ptuple)
 
 
-def protocol_version(client_req, server_min, server_max):
-    '''Given a client protocol request, return the protocol version
-    to use as a tuple.
+def protocol_version(client_req, min_tuple, max_tuple):
+    '''Given a client's protocol version string, return a pair of
+    protocol tuples:
 
-    If a mutually acceptable protocol version does not exist, return None.
+           (negotiated version, client min request)
+
+    If the request is unsupported, the negotiated protocol tuple is
+    None.
     '''
-    if isinstance(client_req, list) and len(client_req) == 2:
-        client_min, client_max = client_req
-    elif client_req is None:
-        client_min = client_max = server_min
+    if client_req is None:
+        client_min = client_max = min_tuple
     else:
-        client_min = client_max = client_req
+        if isinstance(client_req, list) and len(client_req) == 2:
+            client_min, client_max = client_req
+        else:
+            client_min = client_max = client_req
+        client_min = protocol_tuple(client_min)
+        client_max = protocol_tuple(client_max)
 
-    client_min = protocol_tuple(client_min)
-    client_max = protocol_tuple(client_max)
-    server_min = protocol_tuple(server_min)
-    server_max = protocol_tuple(server_max)
-
-    result = min(client_max, server_max)
-    if result < max(client_min, server_min) or result == (0, ):
+    result = min(client_max, max_tuple)
+    if result < max(client_min, min_tuple) or result == (0, ):
         result = None
 
-    return result
+    return result, client_min
 
 
 unpack_int32_from = Struct('<i').unpack_from

@@ -38,13 +38,14 @@ from hashlib import sha256
 from functools import partial
 import base64
 
-import lib.util as util
-from lib.hash import Base58, hash160, double_sha256, hash_to_str, HASHX_LEN
-from lib.script import ScriptPubKey, OpCodes
-import lib.tx as lib_tx
-from server.block_processor import BlockProcessor
-import server.daemon as daemon
-from server.session import ElectrumX, DashElectrumX
+import electrumx.lib.util as util
+from electrumx.lib.hash import Base58, hash160, double_sha256, hash_to_hex_str
+from electrumx.lib.hash import HASHX_LEN
+from electrumx.lib.script import ScriptPubKey, OpCodes
+import electrumx.lib.tx as lib_tx
+from electrumx.server.block_processor import BlockProcessor
+import electrumx.server.daemon as daemon
+from electrumx.server.session import ElectrumX, DashElectrumX
 
 
 Block = namedtuple("Block", "raw header transactions")
@@ -69,6 +70,7 @@ class Coin(object):
     DESERIALIZER = lib_tx.Deserializer
     DAEMON = daemon.Daemon
     BLOCK_PROCESSOR = BlockProcessor
+    MEMPOOL_HISTOGRAM_REFRESH_SECS = 500
     XPUB_VERBYTES = bytes('????', 'utf-8')
     XPRV_VERBYTES = bytes('????', 'utf-8')
     ENCODE_CHECK = Base58.encode_check
@@ -120,7 +122,7 @@ class Coin(object):
         Return the block less its unspendable coinbase.
         '''
         header = cls.block_header(block, 0)
-        header_hex_hash = hash_to_str(cls.header_hash(header))
+        header_hex_hash = hash_to_hex_str(cls.header_hash(header))
         if header_hex_hash != cls.GENESIS_HASH:
             raise CoinError('genesis block has hash {} expected {}'
                             .format(header_hex_hash, cls.GENESIS_HASH))
@@ -292,8 +294,8 @@ class Coin(object):
         return {
             'block_height': height,
             'version': version,
-            'prev_block_hash': hash_to_str(header[4:36]),
-            'merkle_root': hash_to_str(header[36:68]),
+            'prev_block_hash': hash_to_hex_str(header[4:36]),
+            'merkle_root': hash_to_hex_str(header[36:68]),
             'timestamp': timestamp,
             'bits': bits,
             'nonce': nonce,
@@ -329,11 +331,11 @@ class EquihashMixin(object):
         return {
             'block_height': height,
             'version': version,
-            'prev_block_hash': hash_to_str(header[4:36]),
-            'merkle_root': hash_to_str(header[36:68]),
+            'prev_block_hash': hash_to_hex_str(header[4:36]),
+            'merkle_root': hash_to_hex_str(header[36:68]),
             'timestamp': timestamp,
             'bits': bits,
-            'nonce': hash_to_str(header[108:140]),
+            'nonce': hash_to_hex_str(header[108:140]),
         }
 
     @classmethod
@@ -408,20 +410,21 @@ class BitcoinCash(BitcoinMixin, Coin):
     TX_PER_BLOCK = 400
     PEERS = [
         'electroncash.cascharia.com s50002',
-        'bch.arihanc.com t52001 s52002',
+        'bch.electrumx.cash s t',
         'bccarihace4jdcnt.onion t52001 s52002',
-        'jelectrum-cash.1209k.com s t',
-        'abc.vom-stausee.de t52001 s52002',
         'abc1.hsmiths.com t60001 s60002',
         'electroncash.checksum0.com s t',
-        'electron.jns.im s t',
         'electrumx-cash.1209k.com s t',
+        'electrum.leblancnet.us t50011 s50012',
+        'electroncash.dk s t',
+        'electrum.imaginary.cash s t',
     ]
 
 
 class BitcoinSegwit(BitcoinMixin, Coin):
     NAME = "BitcoinSegwit"
     DESERIALIZER = lib_tx.DeserializerSegWit
+    MEMPOOL_HISTOGRAM_REFRESH_SECS = 120
     TX_COUNT = 318337769
     TX_COUNT_HEIGHT = 524213
     TX_PER_BLOCK = 1400
@@ -476,13 +479,13 @@ class BitcoinGold(EquihashMixin, BitcoinMixin, Coin):
         h = dict(
             block_height=height,
             version=struct.unpack('<I', header[:4])[0],
-            prev_block_hash=hash_to_str(header[4:36]),
-            merkle_root=hash_to_str(header[36:68]),
+            prev_block_hash=hash_to_hex_str(header[4:36]),
+            merkle_root=hash_to_hex_str(header[36:68]),
             timestamp=struct.unpack('<I', header[100:104])[0],
-            reserved=hash_to_str(header[72:100]),
+            reserved=hash_to_hex_str(header[72:100]),
             bits=struct.unpack('<I', header[104:108])[0],
-            nonce=hash_to_str(header[108:140]),
-            solution=hash_to_str(header[140:])
+            nonce=hash_to_hex_str(header[108:140]),
+            solution=hash_to_hex_str(header[140:])
         )
 
         return h
@@ -594,6 +597,15 @@ class BitcoinCashTestnet(BitcoinTestnetMixin, Coin):
     ]
 
 
+class BitcoinCashRegtest(BitcoinCashTestnet):
+    NET = "regtest"
+    GENESIS_HASH = ('0f9188f13cb7b2c71f2a335e3a4fc328'
+                    'bf5beb436012afca590b1a11466e2206')
+    PEERS = []
+    TX_COUNT = 1
+    TX_COUNT_HEIGHT = 1
+
+
 class BitcoinSegwitTestnet(BitcoinTestnetMixin, Coin):
     '''Bitcoin Testnet for Core bitcoind >= 0.13.1.'''
     NAME = "BitcoinSegwit"
@@ -605,6 +617,7 @@ class BitcoinSegwitTestnet(BitcoinTestnetMixin, Coin):
         'hsmithsxurybd7uh.onion t53011 s53012',
         'testnetnode.arihanc.com s t',
         'w3e2orjpiiv2qwem3dw66d7c4krink4nhttngkylglpqe5r22n6n5wid.onion s t',
+        'testnet.qtornado.com s t',
     ]
 
 
@@ -785,6 +798,32 @@ class DogecoinTestnet(Dogecoin):
                     '4d7049f45189db5664f3c4d07350559e')
 
 
+# Source: https://github.com/motioncrypto/motion
+class Motion(Coin):
+    NAME = "Motion"
+    SHORTNAME = "XMN"
+    NET = "mainnet"
+    XPUB_VERBYTES = bytes.fromhex("0488B21E")
+    XPRV_VERBYTES = bytes.fromhex("0488ADE4")
+    GENESIS_HASH = ('000001e9dc60dd2618e91f7b90141349'
+                    '22c374496b61c1a272519b1c39979d78')
+    P2PKH_VERBYTE = bytes.fromhex("32")
+    P2SH_VERBYTES = [bytes.fromhex("12")]
+    WIF_BYTE = bytes.fromhex("80")
+    TX_COUNT_HEIGHT = 54353
+    TX_COUNT = 92701
+    TX_PER_BLOCK = 4
+    RPC_PORT = 3385
+    SESSIONCLS = DashElectrumX
+    DAEMON = daemon.DashDaemon
+
+    @classmethod
+    def header_hash(cls, header):
+        '''Given a header return the hash.'''
+        import x16r_hash
+        return x16r_hash.getPoWHash(header)
+
+
 # Source: https://github.com/dashpay/dash
 class Dash(Coin):
     NAME = "Dash"
@@ -926,9 +965,9 @@ class FairCoin(Coin):
         return {
             'block_height': height,
             'version': version,
-            'prev_block_hash': hash_to_str(header[4:36]),
-            'merkle_root': hash_to_str(header[36:68]),
-            'payload_hash': hash_to_str(header[68:100]),
+            'prev_block_hash': hash_to_hex_str(header[4:36]),
+            'merkle_root': hash_to_hex_str(header[36:68]),
+            'payload_hash': hash_to_hex_str(header[68:100]),
             'timestamp': timestamp,
             'creatorId': creatorId,
         }
@@ -990,12 +1029,12 @@ class SnowGem(EquihashMixin, Coin):
         return {
             'block_height': height,
             'version': version,
-            'prev_block_hash': hash_to_str(header[4:36]),
-            'merkle_root': hash_to_str(header[36:68]),
-            'hash_reserved': hash_to_str(header[68:100]),
+            'prev_block_hash': hash_to_hex_str(header[4:36]),
+            'merkle_root': hash_to_hex_str(header[36:68]),
+            'hash_reserved': hash_to_hex_str(header[68:100]),
             'timestamp': timestamp,
             'bits': bits,
-            'nonce': hash_to_str(header[108:140]),
+            'nonce': hash_to_hex_str(header[108:140]),
             'n_solution': base64.b64encode(lib_tx.Deserializer(
                 header, start=140)._read_varbytes()).decode('utf8')
         }
@@ -1836,6 +1875,9 @@ class NewyorkcoinTestnet(Newyorkcoin):
 class Bitcore(BitcoinMixin, Coin):
     NAME = "Bitcore"
     SHORTNAME = "BTX"
+    P2PKH_VERBYTE = bytes.fromhex("03")
+    P2SH_VERBYTES = [bytes.fromhex("7D")]
+    WIF_BYTE = bytes.fromhex("80")
     DESERIALIZER = lib_tx.DeserializerSegWit
     GENESIS_HASH = ('604148281e5c4b7f2487e5d03cd60d8e'
                     '6f69411d613f6448034508cea52e9574')
@@ -1994,8 +2036,8 @@ class Xuez(Coin):
             return {
                 'block_height': height,
                 'version': version,
-                'prev_block_hash': hash_to_str(header[4:36]),
-                'merkle_root': hash_to_str(header[36:68]),
+                'prev_block_hash': hash_to_hex_str(header[4:36]),
+                'merkle_root': hash_to_hex_str(header[36:68]),
                 'timestamp': timestamp,
                 'bits': bits,
                 'nonce': nonce,
@@ -2004,12 +2046,12 @@ class Xuez(Coin):
             return {
                 'block_height': height,
                 'version': version,
-                'prev_block_hash': hash_to_str(header[4:36]),
-                'merkle_root': hash_to_str(header[36:68]),
+                'prev_block_hash': hash_to_hex_str(header[4:36]),
+                'merkle_root': hash_to_hex_str(header[36:68]),
                 'timestamp': timestamp,
                 'bits': bits,
                 'nonce': nonce,
-                'nAccumulatorCheckpoint': hash_to_str(header[80:112]),
+                'nAccumulatorCheckpoint': hash_to_hex_str(header[80:112]),
             }
 
 
@@ -2174,3 +2216,52 @@ class Monoeci(Coin):
                 '''Given a header return the hash.'''
                 import x11_hash
                 return x11_hash.getPoWHash(header)
+
+
+class MinexcoinMixin(object):
+    STATIC_BLOCK_HEADERS = True
+    BASIC_HEADER_SIZE = 209
+    DESERIALIZER = lib_tx.DeserializerEquihash
+
+    @classmethod
+    def electrum_header(cls, header, height):
+        version, = struct.unpack('<I', header[:4])
+        timestamp, bits = struct.unpack('<II', header[100:108])
+
+        return {
+            'block_height': height,
+            'version': version,
+            'prev_block_hash': hash_to_hex_str(header[4:36]),
+            'merkle_root': hash_to_hex_str(header[36:68]),
+            'timestamp': timestamp,
+            'bits': bits,
+            'nonce': hash_to_hex_str(header[108:140]),
+            'solution': hash_to_hex_str(header[140:209]),
+        }
+
+    @classmethod
+    def block_header(cls, block, height):
+        '''Return the block header bytes'''
+        deserializer = cls.DESERIALIZER(block)
+        return deserializer.read_header(height, 140)
+
+
+class Minexcoin(MinexcoinMixin, Coin):
+    NAME = "Minexcoin"
+    SHORTNAME = "MNX"
+    NET = "mainnet"
+    P2PKH_VERBYTE = bytes.fromhex("4b")
+    P2SH_VERBYTES = [bytes.fromhex("05")]
+    WIF_BYTE = bytes.fromhex("80")
+    GENESIS_HASH = ('490a36d9451a55ed197e34aca7414b35'
+                    'd775baa4a8e896f1c577f65ce2d214cb')
+    DESERIALIZER = lib_tx.DeserializerEquihash
+    TX_COUNT = 327963
+    TX_COUNT_HEIGHT = 74495
+    TX_PER_BLOCK = 5
+    RPC_PORT = 8022
+    CHUNK_SIZE = 960
+    PEERS = [
+        'elex01-ams.turinex.eu s t',
+        'eu.minexpool.nl s t'
+    ]

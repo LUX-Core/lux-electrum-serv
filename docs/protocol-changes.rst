@@ -13,6 +13,8 @@ Deprecated methods
   * :func:`blockchain.utxo.get_address`
   * :func:`blockchain.numblocks.subscribe`
 
+.. _version 1.1:
+
 Version 1.1
 ===========
 
@@ -24,7 +26,7 @@ Changes
   * :func:`blockchain.transaction.get` no longer takes the *height*
     argument that was ignored anyway.
   * :func:`blockchain.transaction.broadcast` returns errors like any
-    other JS RPC call.  A transaction hash result is only returned on
+    other JSON RPC call.  A transaction hash result is only returned on
     success.
 
 New methods
@@ -82,3 +84,65 @@ Deprecated methods
   * :func:`blockchain.address.subscribe`.  Switch to
     :func:`blockchain.scripthash.subscribe`.
   * :func:`blockchain.headers.subscribe` with *raw* other than :const:`True`.
+
+.. _version 1.3:
+
+Version 1.3
+===========
+
+Changes
+-------
+
+  * :func:`blockchain.headers.subscribe` argument *raw* switches default to
+    :const:`True`
+
+New methods
+-----------
+
+  * :func:`blockchain.block.header`
+
+Removed methods
+---------------
+
+  * :func:`blockchain.address.get_balance`
+  * :func:`blockchain.address.get_history`
+  * :func:`blockchain.address.get_mempool`
+  * :func:`blockchain.address.listunspent`
+  * :func:`blockchain.address.subscribe`
+
+Deprecated methods
+------------------
+
+  * :func:`blockchain.block.get_header`.  Switch to
+    :func:`blockchain.block.header`.
+
+.. _version 1.4:
+
+Version 1.4
+===========
+
+This version removes all support for :ref:`deserialized headers
+<deserialized header>`.
+
+Changes
+-------
+
+  * Deserialized headers are no longer available, so removed argument
+    *raw* from :func:`blockchain.headers.subscribe`.
+  * Only the first :func:`server.version` message is accepted.
+  * Optional *cp_height* argument added to
+    :func:`blockchain.block.header` and :func:`blockchain.block.headers`
+    to return merkle proofs of the header to a given checkpoint.
+
+New methods
+-----------
+
+  * :func:`blockchain.transaction.id_from_pos` to return a transaction
+    hash, and optionally a merkle proof, given a block height and
+    position in the block.
+
+Removed methods
+---------------
+
+  * :func:`blockchain.block.get_header`
+  * :func:`blockchain.block.get_chunk`

@@ -30,10 +30,11 @@
 
 from collections import namedtuple
 
-from lib.hash import double_sha256, hash_to_str
-from lib.util import (cachedproperty, unpack_int32_from, unpack_int64_from,
-                      unpack_uint16_from, unpack_uint32_from,
-                      unpack_uint64_from)
+from electrumx.lib.hash import double_sha256, hash_to_hex_str
+from electrumx.lib.util import (
+    cachedproperty, unpack_int32_from, unpack_int64_from,
+    unpack_uint16_from, unpack_uint32_from, unpack_uint64_from
+)
 
 
 class Tx(namedtuple("Tx", "version inputs outputs locktime")):
@@ -59,7 +60,7 @@ class TxInput(namedtuple("TxInput", "prev_hash prev_idx script sequence")):
 
     def __str__(self):
         script = self.script.hex()
-        prev_hash = hash_to_str(self.prev_hash)
+        prev_hash = hash_to_hex_str(self.prev_hash)
         return ("Input({}, {:d}, script={}, sequence={:d})"
                 .format(prev_hash, self.prev_idx, script, self.sequence))
 
@@ -427,7 +428,7 @@ class TxInputDcr(namedtuple("TxInput", "prev_hash prev_idx tree sequence")):
                 self.prev_idx == TxInputDcr.MINUS_1)
 
     def __str__(self):
-        prev_hash = hash_to_str(self.prev_hash)
+        prev_hash = hash_to_hex_str(self.prev_hash)
         return ("Input({}, {:d}, tree={}, sequence={:d})"
                 .format(prev_hash, self.prev_idx, self.tree, self.sequence))
 

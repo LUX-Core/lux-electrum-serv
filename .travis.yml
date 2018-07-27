@@ -11,6 +11,8 @@ before_install:
   - pushd leveldb-1.20 && make && sudo mv out-shared/libleveldb.* /usr/local/lib && sudo cp -R include/leveldb /usr/local/include && sudo ldconfig && popd
 python:
   - "3.6"
+  - "3.6-dev"
+  - "3.7-dev"
   - "nightly"
 # command to install dependencies
 install:
@@ -30,10 +32,11 @@ install:
   - pip install xevan_hash
   - pip install quark_hash
   - pip install git+https://github.com/goacoincore/neoscrypt
+  - pip install git+https://github.com/motioncrypto/x16r_hash
 # command to run tests
 script:
-  - pytest --cov=server --cov=lib --cov=wallet
-  - pycodestyle server/*.py lib/*.py
+  - pytest --cov=electrumx
+  - pycodestyle electrumx/server/*.py electrumx/lib/*.py
   - sh -c "cd docs && make html"
 # Dont report coverage from nightly
 after_success:

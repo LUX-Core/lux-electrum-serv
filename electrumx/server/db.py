@@ -11,16 +11,16 @@
 
 import array
 import ast
-import logging
 import os
-from struct import pack, unpack
 from bisect import bisect_right
 from collections import namedtuple
+from glob import glob
+from struct import pack, unpack
 
-import lib.util as util
-from lib.hash import hash_to_str, HASHX_LEN
-from server.storage import db_class
-from server.history import History
+import electrumx.lib.util as util
+from electrumx.lib.hash import hash_to_hex_str, HASHX_LEN
+from electrumx.server.storage import db_class
+from electrumx.server.history import History
 
 
 UTXO = namedtuple("UTXO", "tx_num tx_pos tx_hash height value")
@@ -35,14 +35,11 @@ class DB(object):
 
     DB_VERSIONS = [6]
 
-    class MissingUTXOError(Exception):
-        '''Raised if a mempool tx input UTXO couldn't be found.'''
-
     class DBError(Exception):
         '''Raised on general DB errors generally indicating corruption.'''
 
     def __init__(self, env):
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = util.class_logger(__name__, self.__class__.__name__)
         self.env = env
         self.coin = env.coin
 
@@ -54,19 +51,15 @@ class DB(object):
             self.header_offset = self.dynamic_header_offset
             self.header_len = self.dynamic_header_len
 
-        self.logger.info('switching current directory to {}'
-                         .format(env.db_dir))
+        self.logger.info(f'switching current directory to {env.db_dir}')
         os.chdir(env.db_dir)
 
         self.db_class = db_class(self.env.db_engine)
-        self.logger.info('using {} for DB backend'.format(self.env.db_engine))
-
         self.history = History()
         self.utxo_db = None
-        self.open_dbs()
+        self.tx_counts = None
 
-        self.logger.info('reorg limit is {:,d} blocks'
-                         .format(self.env.reorg_limit))
+        self.logger.info(f'using {self.env.db_engine} for DB backend')
 
         self.headers_file = util.LogicalFile('meta/headers', 2, 16000000)
         self.tx_counts_file = util.LogicalFile('meta/txcounts', 2, 2000000)
@@ -74,10 +67,10 @@ class DB(object):
         if not self.coin.STATIC_BLOCK_HEADERS:
             self.headers_offsets_file = util.LogicalFile(
                 'meta/headers_offsets', 2, 16000000)
-            # Write the offset of the genesis block
-            if self.headers_offsets_file.read(0, 8) != b'\x00' * 8:
-                self.headers_offsets_file.write(0, b'\x00' * 8)
 
+    async def _read_tx_counts(self):
+        if self.tx_counts is not None:
+            return
         # tx_counts[N] has the cumulative number of txs at the end of
         # height N.  So tx_counts[0] is 1 - the genesis coinbase
         size = (self.db_height + 1) * 4
@@ -89,56 +82,51 @@ class DB(object):
         else:
             assert self.db_tx_count == 0
 
-    def open_dbs(self):
-        '''Open the databases.  If already open they are closed and re-opened.
+    async def _open_dbs(self, for_sync):
+        assert self.utxo_db is None
+
+        # First UTXO DB
+        self.utxo_db = self.db_class('utxo', for_sync)
+        if self.utxo_db.is_new:
+            self.logger.info('created new database')
+            self.logger.info('creating metadata directory')
+            os.mkdir('meta')
+            with util.open_file('COIN', create=True) as f:
+                f.write(f'ElectrumX databases and metadata for '
+                        f'{self.coin.NAME} {self.coin.NET}'.encode())
+            if not self.coin.STATIC_BLOCK_HEADERS:
+                self.headers_offsets_file.write(0, bytes(8))
+        else:
+            self.logger.info(f'opened UTXO DB (for sync: {for_sync})')
+        self.read_utxo_state()
+
+        # Then history DB
+        self.utxo_flush_count = self.history.open_db(self.db_class, for_sync,
+                                                     self.utxo_flush_count)
+        self.clear_excess_undo_info()
+
+        # Read TX counts (requires meta directory)
+        await self._read_tx_counts()
+
+    async def open_for_sync(self):
+        '''Open the databases to sync to the daemon.
 
         When syncing we want to reserve a lot of open files for the
         synchronization.  When serving clients we want the open files for
         serving network connections.
         '''
-        def log_reason(message, is_for_sync):
-            reason = 'sync' if is_for_sync else 'serving'
-            self.logger.info('{} for {}'.format(message, reason))
+        await self._open_dbs(True)
 
-        # Assume we're serving until we find out otherwise
-        for for_sync in [False, True]:
-            if self.utxo_db:
-                if self.utxo_db.for_sync == for_sync:
-                    return
-                log_reason('closing DB to re-open', for_sync)
-                self.utxo_db.close()
-                self.history.close_db()
-
-            # Open DB and metadata files.  Record some of its state.
-            self.utxo_db = self.db_class('utxo', for_sync)
-            if self.utxo_db.is_new:
-                self.logger.info('created new database')
-                self.logger.info('creating metadata directory')
-                os.mkdir('meta')
-                with util.open_file('COIN', create=True) as f:
-                    f.write('ElectrumX databases and metadata for {} {}'
-                            .format(self.coin.NAME, self.coin.NET).encode())
-            else:
-                log_reason('opened DB', self.utxo_db.for_sync)
-
-            self.read_utxo_state()
-            if self.first_sync == self.utxo_db.for_sync:
-                break
-
-        # Open history DB, clear excess history
-        self.utxo_flush_count = self.history.open_db(self.db_class, for_sync,
-                                                     self.utxo_flush_count)
-        self.clear_excess_undo_info()
-
-        self.logger.info('DB version: {:d}'.format(self.db_version))
-        self.logger.info('coin: {}'.format(self.coin.NAME))
-        self.logger.info('network: {}'.format(self.coin.NET))
-        self.logger.info('height: {:,d}'.format(self.db_height))
-        self.logger.info('tip: {}'.format(hash_to_str(self.db_tip)))
-        self.logger.info('tx count: {:,d}'.format(self.db_tx_count))
-        if self.first_sync:
-            self.logger.info('sync time so far: {}'
-                             .format(util.formatted_time(self.wall_time)))
+    async def open_for_serving(self):
+        '''Open the databases for serving.  If they are already open they are
+        closed first.
+        '''
+        if self.utxo_db:
+            self.logger.info('closing DBs to re-open for serving')
+            self.utxo_db.close()
+            self.history.close_db()
+            self.utxo_db = None
+        await self._open_dbs(False)
 
     def fs_update_header_offsets(self, offset_start, height_start, headers):
         if self.coin.STATIC_BLOCK_HEADERS:
@@ -266,6 +254,29 @@ class DB(object):
         for undo_info, height in undo_infos:
             batch_put(self.undo_key(height), b''.join(undo_info))
 
+    def raw_block_prefix(self):
+        return 'meta/block'
+
+    def raw_block_path(self, height):
+        return f'{self.raw_block_prefix()}{height:d}'
+
+    def read_raw_block(self, height):
+        '''Returns a raw block read from disk.  Raises FileNotFoundError
+        if the block isn't on-disk.'''
+        with util.open_file(self.raw_block_path(height)) as f:
+            return f.read(-1)
+
+    def write_raw_block(self, block, height):
+        '''Write a raw block to disk.'''
+        with util.open_truncate(self.raw_block_path(height)) as f:
+            f.write(block)
+        # Delete old blocks to prevent them accumulating
+        try:
+            del_height = self.min_undo_height(height) - 1
+            os.remove(self.raw_block_path(del_height))
+        except FileNotFoundError:
+            pass
+
     def clear_excess_undo_info(self):
         '''Clear excess undo info.  Only most recent N are kept.'''
         prefix = b'U'
@@ -281,8 +292,20 @@ class DB(object):
             with self.utxo_db.write_batch() as batch:
                 for key in keys:
                     batch.delete(key)
-            self.logger.info('deleted {:,d} stale undo entries'
-                             .format(len(keys)))
+            self.logger.info(f'deleted {len(keys):,d} stale undo entries')
+
+        # delete old block files
+        prefix = self.raw_block_prefix()
+        paths = [path for path in glob(f'{prefix}[0-9]*')
+                 if len(path) > len(prefix)
+                 and int(path[len(prefix):]) < min_height]
+        if paths:
+            for path in paths:
+                try:
+                    os.remove(path)
+                except FileNotFoundError:
+                    pass
+            self.logger.info(f'deleted {len(paths):,d} stale block files')
 
     # -- UTXO database
 
@@ -319,6 +342,17 @@ class DB(object):
             self.utxo_flush_count = state['utxo_flush_count']
             self.wall_time = state['wall_time']
             self.first_sync = state['first_sync']
+
+        # Log some stats
+        self.logger.info('DB version: {:d}'.format(self.db_version))
+        self.logger.info('coin: {}'.format(self.coin.NAME))
+        self.logger.info('network: {}'.format(self.coin.NET))
+        self.logger.info('height: {:,d}'.format(self.db_height))
+        self.logger.info('tip: {}'.format(hash_to_hex_str(self.db_tip)))
+        self.logger.info('tx count: {:,d}'.format(self.db_tx_count))
+        if self.first_sync:
+            self.logger.info('sync time so far: {}'
+                             .format(util.formatted_time(self.wall_time)))
 
     def write_utxo_state(self, batch):
         '''Write (UTXO) state to the batch.'''
@@ -362,43 +396,52 @@ class DB(object):
             tx_hash, height = self.fs_tx_hash(tx_num)
             yield UTXO(tx_num, tx_pos, tx_hash, height, value)
 
-    def db_utxo_lookup(self, tx_hash, tx_idx):
-        '''Given a prevout return a (hashX, value) pair.
+    async def lookup_utxos(self, prevouts):
+        '''For each prevout, lookup it up in the DB and return a (hashX,
+        value) pair or None if not found.
 
-        Raises MissingUTXOError if the UTXO is not found.  Used by the
-        mempool code.
+        Used by the mempool code.
         '''
-        idx_packed = pack('<H', tx_idx)
-        hashX, tx_num_packed = self._db_hashX(tx_hash, idx_packed)
-        if not hashX:
-            # This can happen when the daemon is a block ahead of us
-            # and has mempool txs spending outputs from that new block
-            raise self.MissingUTXOError
+        def lookup_hashXs():
+            '''Return (hashX, suffix) pairs, or None if not found,
+            for each prevout.
+            '''
+            def lookup_hashX(tx_hash, tx_idx):
+                idx_packed = pack('<H', tx_idx)
 
-        # Key: b'u' + address_hashX + tx_idx + tx_num
-        # Value: the UTXO value as a 64-bit unsigned integer
-        key = b'u' + hashX + idx_packed + tx_num_packed
-        db_value = self.utxo_db.get(key)
-        if not db_value:
-            raise self.DBError('UTXO {} / {:,d} in one table only'
-                               .format(hash_to_str(tx_hash), tx_idx))
-        value, = unpack('<Q', db_value)
-        return hashX, value
+                # Key: b'h' + compressed_tx_hash + tx_idx + tx_num
+                # Value: hashX
+                prefix = b'h' + tx_hash[:4] + idx_packed
 
-    def _db_hashX(self, tx_hash, idx_packed):
-        '''Return (hashX, tx_num_packed) for the given TXO.
+                # Find which entry, if any, the TX_HASH matches.
+                for db_key, hashX in self.utxo_db.iterator(prefix=prefix):
+                    tx_num_packed = db_key[-4:]
+                    tx_num, = unpack('<I', tx_num_packed)
+                    hash, height = self.fs_tx_hash(tx_num)
+                    if hash == tx_hash:
+                        return hashX, idx_packed + tx_num_packed
+                return None, None
+            return [lookup_hashX(*prevout) for prevout in prevouts]
 
-        Both are None if not found.'''
-        # Key: b'h' + compressed_tx_hash + tx_idx + tx_num
-        # Value: hashX
-        prefix = b'h' + tx_hash[:4] + idx_packed
+        def lookup_utxos(hashX_pairs):
+            def lookup_utxo(hashX, suffix):
+                if not hashX:
+                    # This can happen when the daemon is a block ahead
+                    # of us and has mempool txs spending outputs from
+                    # that new block
+                    return None
+                # Key: b'u' + address_hashX + tx_idx + tx_num
+                # Value: the UTXO value as a 64-bit unsigned integer
+                key = b'u' + hashX + suffix
+                db_value = self.utxo_db.get(key)
+                if not db_value:
+                    # This can happen if the DB was updated between
+                    # getting the hashXs and getting the UTXOs
+                    return None
+                value, = unpack('<Q', db_value)
+                return hashX, value
+            return [lookup_utxo(*hashX_pair) for hashX_pair in hashX_pairs]
 
-        # Find which entry, if any, the TX_HASH matches.
-        for db_key, hashX in self.utxo_db.iterator(prefix=prefix):
-            tx_num_packed = db_key[-4:]
-            tx_num, = unpack('<I', tx_num_packed)
-            hash, height = self.fs_tx_hash(tx_num)
-            if hash == tx_hash:
-                return hashX, tx_num_packed
-
-        return None, None
+        run_in_thread = self.tasks.run_in_thread
+        hashX_pairs = await run_in_thread(lookup_hashXs)
+        return await run_in_thread(lookup_utxos, hashX_pairs)

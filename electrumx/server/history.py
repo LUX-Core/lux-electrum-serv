@@ -13,11 +13,10 @@ import ast
 import bisect
 from collections import defaultdict
 from functools import partial
-import logging
 from struct import pack, unpack
 
-import lib.util as util
-from lib.hash import hash_to_str, HASHX_LEN
+import electrumx.lib.util as util
+from electrumx.lib.hash import hash_to_hex_str, HASHX_LEN
 
 
 class History(object):
@@ -25,7 +24,7 @@ class History(object):
     DB_VERSIONS = [0]
 
     def __init__(self):
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = util.class_logger(__name__, self.__class__.__name__)
         # For history compaction
         self.max_hist_row_entries = 12500
         self.unflushed = defaultdict(partial(array.array, 'I'))
@@ -59,12 +58,12 @@ class History(object):
             self.comp_cursor = -1
             self.db_version = max(self.DB_VERSIONS)
 
-        self.logger.info(f'flush count: {self.flush_count:,d}')
         self.logger.info(f'history DB version: {self.db_version}')
         if self.db_version not in self.DB_VERSIONS:
             msg = f'this software only handles DB versions {self.DB_VERSIONS}'
             self.logger.error(msg)
             raise RuntimeError(msg)
+        self.logger.info(f'flush count: {self.flush_count:,d}')
 
     def clear_excess(self, utxo_flush_count):
         # < might happen at end of compaction as both DBs cannot be
@@ -231,8 +230,8 @@ class History(object):
         if nrows > 4:
             self.logger.info('hashX {} is large: {:,d} entries across '
                              '{:,d} rows'
-                             .format(hash_to_str(hashX), len(full_hist) // 4,
-                                     nrows))
+                             .format(hash_to_hex_str(hashX),
+                                     len(full_hist) // 4, nrows))
 
         # Find what history needs to be written, and what keys need to
         # be deleted.  Start by assuming all keys are to be deleted,
