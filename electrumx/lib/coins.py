@@ -42,6 +42,7 @@ import electrumx.lib.util as util
 from electrumx.lib.hash import Base58, hash160, double_sha256, hash_to_hex_str
 from electrumx.lib.hash import HASHX_LEN
 from electrumx.lib.script import ScriptPubKey, OpCodes
+from electrumx.lib.verus_hash import verus_hash
 import electrumx.lib.tx as lib_tx
 import electrumx.server.block_processor as block_proc
 import electrumx.server.daemon as daemon
@@ -241,6 +242,10 @@ class Coin(object):
     def block(cls, raw_block, height):
         '''Return a Block namedtuple given a raw block and its height.'''
         header = cls.block_header(raw_block, height)
+
+        # print("Deserializer is: " + str(cls.DESERIALIZER) + "\n")
+        # print("header hash is: " + verus_hash(header)[::-1].hex() + "\n", flush=True)
+
         txs = cls.DESERIALIZER(raw_block, start=len(header)).read_tx_block()
         return Block(raw_block, header, txs)
 
@@ -1379,13 +1384,21 @@ class Verus(KomodoMixin, EquihashMixin, Coin):
     NAME = "Verus"
     SHORTNAME = "VRSC"
     NET = "mainnet"
-    DESERIALIZER = lib_tx.DeserializerEquihash
     TX_COUNT = 55000
     TX_COUNT_HEIGHT = 42000
     TX_PER_BLOCK = 2
     RPC_PORT = 27486
     REORG_LIMIT = 800
     PEERS = []
+
+    @classmethod
+    def header_hash(cls, header):
+        '''Given a header return hash'''
+        # if this may be the genesis block, use sha256, otherwise, VerusHash
+        if cls.header_prevhash(header) == bytes([0] * 32):
+            return double_sha256(header)
+        else:
+            return verus_hash(header)
 
 
 class Einsteinium(Coin):
