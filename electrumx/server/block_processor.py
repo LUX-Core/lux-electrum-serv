@@ -18,7 +18,6 @@ from functools import partial
 from aiorpcx import TaskGroup, run_in_thread
 
 import electrumx
-from electrumx.lib.tx import is_gen_outpoint
 from electrumx.server.daemon import DaemonError
 from electrumx.lib.hash import hash_to_hex_str, HASHX_LEN
 from electrumx.lib.util import chunks, class_logger
@@ -241,10 +240,10 @@ class BlockProcessor(object):
         async def get_raw_blocks(last_height, hex_hashes):
             heights = range(last_height, last_height - len(hex_hashes), -1)
             try:
-                blocks = [self.read_raw_block(height) for height in heights]
+                blocks = [self.db.read_raw_block(height) for height in heights]
                 self.logger.info(f'read {len(blocks)} blocks from disk')
                 return blocks
-            except Exception:
+            except FileNotFoundError:
                 return await self.daemon.raw_blocks(hex_hashes)
 
         def flush_backup():
@@ -413,7 +412,7 @@ class BlockProcessor(object):
 
             # Spend the inputs
             for txin in tx.inputs:
-                if is_gen_outpoint(txin.prev_hash, txin.prev_idx):
+                if txin.is_generation():
                     continue
                 cache_value = spend_utxo(txin.prev_hash, txin.prev_idx)
                 undo_info_append(cache_value)
@@ -493,7 +492,7 @@ class BlockProcessor(object):
 
             # Restore the inputs
             for txin in reversed(tx.inputs):
-                if is_gen_outpoint(txin.prev_hash, txin.prev_idx):
+                if txin.is_generation():
                     continue
                 n -= undo_entry_len
                 undo_item = undo_info[n:n + undo_entry_len]
