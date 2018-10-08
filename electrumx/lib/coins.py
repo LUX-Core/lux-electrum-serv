@@ -1380,6 +1380,17 @@ class CoinCollect(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class Dion(KomodoMixin, EquihashMixin, Coin):
+    NAME = "Dion"
+    SHORTNAME = "DION"
+    NET = "mainnet"
+    TX_COUNT = 100
+    TX_COUNT_HEIGHT = 100
+    TX_PER_BLOCK = 2
+    RPC_PORT = 23895
+    REORG_LIMIT = 800
+    PEERS = []
+
 class Verus(KomodoMixin, EquihashMixin, Coin):
     NAME = "Verus"
     SHORTNAME = "VRSC"
