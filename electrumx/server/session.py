@@ -155,7 +155,7 @@ class SessionManager(object):
         host, port = args[:2]
         try:
             self.servers[kind] = await server
-        except Exception as e:
+        except OSError as e:    # don't suppress CancelledError
             self.logger.error(f'{kind} server failed to listen on {host}:'
                               f'{port:d} :{e!r}')
         else:
@@ -202,6 +202,7 @@ class SessionManager(object):
             # Start listening for incoming connections if paused and
             # session count has fallen
             if paused and len(self.sessions) <= low_watermark:
+                self.logger.info('resuming listening for incoming connections')
                 await self._start_external_servers()
                 paused = False
 
