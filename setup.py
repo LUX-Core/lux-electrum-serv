@@ -13,7 +13,7 @@ setuptools.setup(
     # "xevan_hash" package is required to sync Xuez network.
     # "groestlcoin_hash" package is required to sync Groestlcoin network.
     install_requires=['aiorpcX>=0.8.1,<0.9', 'attrs',
-                      'plyvel', 'pylru', 'aiohttp >= 2', 'uvloop'],
+                      'plyvel', 'pylru', 'aiohttp >= 2', 'uvloop', 'x11_hash', 'scrypt'],
     packages=setuptools.find_packages(include=('electrumx*',)),
     description='ElectrumX Server',
     author='Neil Booth',
