@@ -1472,6 +1472,17 @@ class ChainZilla(KomodoMixin, EquihashMixin, Coin):
     REORG_LIMIT = 800
     PEERS = []
 
+class ChainMakers(KomodoMixin, EquihashMixin, Coin):
+    NAME = "ChainMakers"
+    SHORTNAME = "CHAIN"
+    NET = "mainnet"
+    TX_COUNT = 100
+    TX_COUNT_HEIGHT = 100
+    TX_PER_BLOCK = 2
+    RPC_PORT = 15587
+    REORG_LIMIT = 800
+    PEERS = []
+
 class CoinCollect(KomodoMixin, EquihashMixin, Coin):
     NAME = "CoinCollect"
     SHORTNAME = "CCL"
