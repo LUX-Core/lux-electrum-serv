@@ -289,7 +289,7 @@ class SessionManager(object):
             'errors': sum(s.errors for s in self.sessions),
             'groups': len(group_map),
             'logged': len([s for s in self.sessions if s.log_me]),
-            'paused': sum(not s.can_send.is_set() for s in self.sessions),
+            'paused': sum(not s._can_send.is_set() for s in self.sessions),
             'pid': os.getpid(),
             'peers': self.peer_mgr.info(),
             'requests': sum(s.count_pending_items() for s in self.sessions),
@@ -513,7 +513,7 @@ class SessionManager(object):
             # Close servers and sessions
             await self._close_servers(list(self.servers.keys()))
             async with TaskGroup() as group:
-                for session in list(self.sessions):
+                for session in self.sessions:
                     await group.spawn(session.close(force_after=1))
 
     def session_count(self):
@@ -567,9 +567,8 @@ class SessionManager(object):
             for hashX in set(hc).intersection(touched):
                 del hc[hashX]
 
-        async with TaskGroup() as group:
-            for session in self.sessions:
-                await group.spawn(session.notify(touched, height_changed))
+        for session in self.sessions:
+            await session.spawn(session.notify, touched, height_changed)
 
     def add_session(self, session):
         self.sessions.add(session)
@@ -649,7 +648,7 @@ class SessionBase(RPCSession):
             status += 'C'
         if self.log_me:
             status += 'L'
-        status += str(self.concurrency.max_concurrent)
+        status += str(self._concurrency.max_concurrent)
         return status
 
     def connection_made(self, transport):
@@ -664,12 +663,11 @@ class SessionBase(RPCSession):
 
     def connection_lost(self, exc):
         '''Handle client disconnection.'''
-        super().connection_lost(exc)
         self.session_mgr.remove_session(self)
         msg = ''
-        if not self.can_send.is_set():
-            msg += ' whilst paused'
-        if self.concurrency.max_concurrent != self.max_concurrent:
+        if not self._can_send.is_set():
+            msg += ' with full socket buffer'
+        if self._concurrency.max_concurrent != self.max_concurrent:
             msg += ' whilst throttled'
         if self.send_size >= 1024*1024:
             msg += ('.  Sent {:,d} bytes in {:,d} messages'
@@ -677,12 +675,13 @@ class SessionBase(RPCSession):
         if msg:
             msg = 'disconnected' + msg
             self.logger.info(msg)
+        super().connection_lost(exc)
 
     def count_pending_items(self):
         return len(self.connection.pending_requests())
 
     def semaphore(self):
-        return Semaphores([self.concurrency.semaphore, self.group.semaphore])
+        return Semaphores([self._concurrency.semaphore, self.group.semaphore])
 
     def sub_count(self):
         return 0
@@ -702,7 +701,7 @@ class SessionBase(RPCSession):
 class ElectrumX(SessionBase):
     '''A TCP server that handles incoming Electrum connections.'''
 
-    PROTOCOL_MIN = (1, 1)
+    PROTOCOL_MIN = (1, 2)
     PROTOCOL_MAX = (1, 4)
 
     def __init__(self, *args, **kwargs):
@@ -1227,6 +1226,7 @@ class ElectrumX(SessionBase):
         handlers = {
             'blockchain.block.get_chunk': self.block_get_chunk,
             'blockchain.block.get_header': self.block_get_header,
+            'blockchain.block.headers': self.block_headers_12,
             'blockchain.estimatefee': self.estimatefee,
             'blockchain.relayfee': self.relayfee,
             'blockchain.scripthash.get_balance': self.scripthash_get_balance,
@@ -1237,22 +1237,15 @@ class ElectrumX(SessionBase):
             'blockchain.transaction.broadcast': self.transaction_broadcast,
             'blockchain.transaction.get': self.transaction_get,
             'blockchain.transaction.get_merkle': self.transaction_merkle,
+            'mempool.get_fee_histogram': self.mempool.compact_fee_histogram,
             'server.add_peer': self.add_peer,
             'server.banner': self.banner,
             'server.donation_address': self.donation_address,
             'server.features': self.server_features_async,
             'server.peers.subscribe': self.peers_subscribe,
+            'server.ping': self.ping,
             'server.version': self.server_version,
         }
-
-        if ptuple >= (1, 2):
-            # New handler as of 1.2
-            handlers.update({
-                'mempool.get_fee_histogram':
-                self.mempool.compact_fee_histogram,
-                'blockchain.block.headers': self.block_headers_12,
-                'server.ping': self.ping,
-            })
 
         if ptuple >= (1, 4):
             handlers.update({

@@ -7,6 +7,39 @@
    and memory consumption whilst serving clients.  Those problems
    should not occur with Python 3.7.
 
+.. note:: Bitcoin ABC developers have hastily introduced controversial
+   changes that break ElectrumX's block processing by requiring it to
+   be non-sequential.  Unlike others with unique requirements they
+   refused to make their code coin-specific.  ElectrumX continues to
+   require blocks be naturally ordered, and is compatible with any
+   non-CToR daemon, such as Bitcoin SV, and Bitcoin Unlimited /
+   Bitcoin XT with CToR disabled.
+
+Version 1.8.11 (07 Nov 2018)
+============================
+
+* require aiorpcX 0.10.1
+
+Version 1.8.10 (05 Nov 2018)
+============================
+
+* require aiorpcX 0.10.0
+* fix `#632`_
+* coin additions / updates: ZelCash (TheTrunk)
+
+Version 1.8.9 (02 Nov 2018)
+===========================
+
+* fix `#630`_
+
+Version 1.8.8 (01 Nov 2018)
+===========================
+
+* require aiorpcX 0.9.0
+* coin additions / updates: decred (dajohi, bolapara), zcash (erasmospunk),
+  namecoin (JeremyRand),CivX (turcol), NewYorkCoin (erasmospunk)
+* fix `#603`_, `#608`_
+* other minor fixes and changes: FMCorz
 
 Version 1.8.7 (13 Sep 2018)
 ===========================
@@ -170,58 +203,13 @@ Version 1.5
 * minor tweaks: romanz, you21979, SuBPaR42, sangaman, wakiyamap, DaShak
 
 
-Version 1.4.3
-=============
-
-* Fix `#442`_.
-
-Version 1.4.2
-=============
-
-* proxy remote IP reported properly if :envvar:`FORCE_PROXY` is set.
-  Fixes `#301`_.
-* requires aiorpcx 0.5.5
-
-Version 1.4.1
-=============
-
-* minor bugfixes - cleaner shutdown; group handling
-* set PROTOCOL_MIN to 1.0; this will prevent 2.9.x clients from connecting
-  and encourage upgrades to more recent clients without the security hole
-* requires aiorpcx 0.5.4
-
-Version 1.4
-===========
-
-* switch to `aiorpcX <https://github.com/kyuupichan/aiorpcX>`_ for all
-  networking, ``JSON RPC`` and proxy handling
-* proxy detection improvements
-* `documentation <https://electrumx.readthedocs.io/>`_ rewrite
-* new environment variable :envvar:`LOG_FORMAT` to control logging format
-* new environment variable :envvar:`DROP_CLIENT` to cut off unsupported
-     client software
-* coin updates: Litecoin (pooler), bitbayd (kongeo), BTG (wilsonmeier),
-     danny91, wakiyamap, snowgem, Dash (theLazier), fujicoin
-* new coins: Decred (cipherzzz), axe (-k),
-* typo fixes (dax, romanz)
-
-.. note:: the Dash-specific undocumented ``masternode.subscribe()``
-   RPC call was not following the JSON RPC spec; this was shown up by
-   the switch to aiorpcX.  I had to modify the code but it may break
-   Dash clients.
-
-   The Decred implementation doesn't work on mainnet; I will remove it
-   if this remains unfixed.
-
 **Neil Booth**  kyuupichan@gmail.com  https://github.com/kyuupichan
 
 bitcoincash:qzxpdlt8ehu9ehftw6rqsy2jgfq4nsltxvhrdmdfpn
 
 .. _#258: https://github.com/kyuupichan/electrumx/issues/258
-.. _#301: https://github.com/kyuupichan/electrumx/issues/301
 .. _#315: https://github.com/kyuupichan/electrumx/issues/315
 .. _#414: https://github.com/kyuupichan/electrumx/issues/414
-.. _#442: https://github.com/kyuupichan/electrumx/issues/442
 .. _#443: https://github.com/kyuupichan/electrumx/issues/443
 .. _#455: https://github.com/kyuupichan/electrumx/issues/455
 .. _#479: https://github.com/kyuupichan/electrumx/issues/479
@@ -242,3 +230,7 @@ bitcoincash:qzxpdlt8ehu9ehftw6rqsy2jgfq4nsltxvhrdmdfpn
 .. _#567: https://github.com/kyuupichan/electrumx/issues/567
 .. _#570: https://github.com/kyuupichan/electrumx/issues/570
 .. _#577: https://github.com/kyuupichan/electrumx/issues/577
+.. _#603: https://github.com/kyuupichan/electrumx/issues/603
+.. _#608: https://github.com/kyuupichan/electrumx/issues/608
+.. _#630: https://github.com/kyuupichan/electrumx/issues/630
+.. _#632: https://github.com/kyuupichan/electrumx/issues/630

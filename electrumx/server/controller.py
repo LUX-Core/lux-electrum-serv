@@ -48,11 +48,10 @@ class Notifications(object):
             # new block height
             return
         touched = tmp.pop(height)
-        touched.update(tbp.pop(height, set()))
         for old in [h for h in tmp if h <= height]:
             del tmp[old]
         for old in [h for h in tbp if h <= height]:
-            del tbp[old]
+            touched.update(tbp.pop(old))
         await self.notify(height, touched)
 
     async def notify(self, height, touched):
@@ -83,8 +82,8 @@ class Controller(ServerBase):
         '''Start the RPC server and wait for the mempool to synchronize.  Then
         start serving external clients.
         '''
-        if not (0, 9, 0) <= aiorpcx_version < (0, 10):
-            raise RuntimeError('aiorpcX version 0.9.x required')
+        if not (0, 10, 1) <= aiorpcx_version < (0, 11):
+            raise RuntimeError('aiorpcX version 0.10.x, x >= 1, required')
 
         env = self.env
         min_str, max_str = env.coin.SESSIONCLS.protocol_min_max_strings()

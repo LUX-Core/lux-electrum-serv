@@ -380,9 +380,7 @@ class BitcoinCash(BitcoinMixin, Coin):
         'bch.electrumx.cash s t',
         'bccarihace4jdcnt.onion t52001 s52002',
         'abc1.hsmiths.com t60001 s60002',
-        'electroncash.checksum0.com s t',
         'electrumx-cash.1209k.com s t',
-        'electrum.leblancnet.us t50011 s50012',
         'electroncash.dk s t',
         'electrum.imaginary.cash s t',
     ]
@@ -400,7 +398,6 @@ class BitcoinSegwit(BitcoinMixin, Coin):
         'E-X.not.fyi s t',
         'elec.luggs.co s443',
         'electrum.vom-stausee.de s t',
-        'electrum3.hachre.de s t',
         'electrum.hsmiths.com s t',
         'helicarrier.bauerj.eu s t',
         'hsmiths4fyqlw5xw.onion s t',
@@ -1115,6 +1112,23 @@ class Hush(EquihashMixin, Coin):
     TX_COUNT_HEIGHT = 68379
     TX_PER_BLOCK = 5
     RPC_PORT = 8822
+    REORG_LIMIT = 800
+
+
+class ZelCash(EquihashMixin, Coin):
+    NAME = "ZelCash"
+    SHORTNAME = "ZEL"
+    NET = "mainnet"
+    P2PKH_VERBYTE = bytes.fromhex("1CB8")
+    P2SH_VERBYTES = [bytes.fromhex("1CBD")]
+    WIF_BYTE = bytes.fromhex("80")
+    GENESIS_HASH = ('00052461a5006c2e3b74ce48992a0869'
+                    '5607912d5604c3eb8da25749b0900444')
+    DESERIALIZER = lib_tx.DeserializerZcash
+    TX_COUNT = 450539
+    TX_COUNT_HEIGHT = 167114
+    TX_PER_BLOCK = 3
+    RPC_PORT = 16124
     REORG_LIMIT = 800
 
 
@@ -1971,7 +1985,6 @@ class Newyorkcoin(AuxPowMixin, Coin):
     WIF_BYTE = bytes.fromhex("bc")
     GENESIS_HASH = ('5597f25c062a3038c7fd815fe46c67de'
                     'dfcb3c839fbc8e01ed4044540d08fe48')
-    DAEMON = daemon.LegacyRPCDaemon
     TX_COUNT = 5161944
     TX_COUNT_HEIGHT = 3948743
     TX_PER_BLOCK = 2
@@ -1986,7 +1999,6 @@ class NewyorkcoinTestnet(Newyorkcoin):
     WIF_BYTE = bytes.fromhex("f1")
     GENESIS_HASH = ('24463e4d3c625b0a9059f309044c2cf0'
                     'd7e196cf2a6ecce901f24f681be33c8f')
-    DAEMON = daemon.LegacyRPCDaemon
     TX_COUNT = 5161944
     TX_COUNT_HEIGHT = 3948743
     TX_PER_BLOCK = 2
