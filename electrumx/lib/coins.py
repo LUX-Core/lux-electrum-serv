@@ -2719,3 +2719,57 @@ class NIXTestnet(NIX):
     WIF_BYTE = bytes.fromhex("80")
     RPC_PORT = 16215
     DESERIALIZER = lib_tx.DeserializerSegWit
+
+
+class LUX(Coin):
+    NAME = "LUX"
+    SHORTNAME = "LUX"
+    NET = "mainnet"
+    XPUB_VERBYTES = bytes.fromhex("0728a24e")
+    XPRV_VERBYTES = bytes.fromhex("03d8a1e5")
+    P2PKH_VERBYTE = bytes.fromhex("30")
+    P2SH_VERBYTES = [bytes.fromhex("3F")]
+    WIF_BYTE = bytes.fromhex("9B")
+    GENESIS_HASH = (
+        '00000759bb3da130d7c9aedae170da8335f5a0d01a9007e4c8d3ccd08ace6a42')
+    DESERIALIZER = lib_tx.DeserializerSegWit
+    TX_COUNT = 1000
+    TX_COUNT_HEIGHT = 10000
+    TX_PER_BLOCK = 3
+    RPC_PORT = 9888
+    REORG_LIMIT = 1000
+    
+    @classmethod
+    def header_hash(cls, header):
+        version, = util.unpack_le_uint32_from(header)
+
+        import phi1612_hash
+        import phi2_hash
+                            
+        if version != 1:
+            return phi2_hash.getPoWHash(header[:144])
+        else:
+            return phi1612_hash.getPoWHash(header[:80])
+
+    @classmethod
+    def block_header(cls, block, height):
+        '''Returns the block header given a block and its height.'''
+        deserializer = cls.DESERIALIZER(block, start=cls.BASIC_HEADER_SIZE)
+        sig_length = deserializer._read_varint()
+        return block[:deserializer.cursor + sig_length]
+
+    @classmethod
+    def electrum_header(cls, header, height):
+    	version, = struct.unpack('<I', header[:1])
+    	timestamp, bits, nonce = struct.unpack('<III', header[68:80])
+    	h = {
+            'version': version,
+            'prev_block_hash': hash_to_hex_str(header[4:36]),
+            'merkle_root': hash_to_hex_str(header[36:68]),
+            'timestamp': timestamp,
+            'bits': bits,
+            'nonce': nonce,
+            'hash_state_root': hash_to_hex_str(header[80:112]),
+            'hash_utxo_root': hash_to_hex_str(header[112:144]),
+        }
+    	return h
